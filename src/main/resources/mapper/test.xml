@@ -1,0 +1,160 @@
+<?xml version="1.0" encoding= "UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+
+<mapper namespace="userControlMapper">
+	<resultMap type="boardMap" id="boardMap">
+		<result column="board_num" property="board_num" />
+		<result column="board_title" property="board_title" />
+		<result column="board_content" property="board_content" />
+		<result column="board_file" property="board_file" />
+		<result column="board_date" property="board_date" />
+		<result column="board_read_cnt" property="board_read_cnt"></result>
+		<collection property="fileCommand" javaType="java.util.ArrayList" resultMap="fileMap"></collection>
+	</resultMap>
+	<resultMap type="fileMap" id="fileMap">
+		<result column="file_num" property="file_num" />
+		<result column="file_name" property="file_name" />
+		<result column="file_org_name" property="file_org_name" />
+		<result column="file_group" property="file_group" />
+		<result column="file_size" property="file_size"/>
+	</resultMap>
+
+
+
+	<!-- 게시판 리스트 -->
+	<select id="sel_board_list" parameterType="Integer"
+		resultMap="boardMap">
+		select
+			*
+		from
+			board
+
+		<trim prefix="WHERE" prefixOverrides="AND|OR">
+			<if
+				test="searchType=='board_title' and keyword != null and keyword != '' ">
+				AND board_title like CONCAT('%', #{keyword}, '%')
+			</if>
+			<if
+				test="searchType=='board_content' and keyword != null and keyword != '' ">
+				OR board_content like CONCAT('%', #{keyword}, '%')
+			</if>
+		</trim>
+			<![CDATA[
+		order by board_num desc
+	limit #{startRowNum},5;
+	]]>
+	</select>
+
+	<!-- 글 갯수 -->
+	<select id="cnt_board_num" parameterType="map" resultType="int">
+		select count(board_num) from board
+		<trim prefix="WHERE" prefixOverrides="AND|OR">
+			<if test="keyword != null and keyword != '' ">
+				<if test="searchType=='board_title'">
+					AND board_title like CONCAT('%', #{keyword}, '%')
+				</if>
+				<if test="searchType=='board_content'">
+					OR board_content like CONCAT('%', #{keyword}, '%')
+				</if>
+			</if>
+		</trim>
+	</select>
+
+	<!-- 글 작성 -->
+	<insert id="board_write">
+<!-- 		insert into board(board_num, board_title, board_content, board_file, board_date, board_read_cnt)
+		values(null,#{board_title},#{board_content},, sysdate(), 0) -->
+		insert into board(board_num, board_title, board_content, board_file, board_date, board_read_cnt)
+		values(null,#{board_title},#{board_content},
+		(select concat
+			((select * from(
+				select auto_increment from information_schema.tables where table_schema = 'test' and table_name='board') b),
+			'번글파일' )
+		from dual), sysdate(), 0);		
+	</insert>
+	<insert id="board_write2">
+		insert into board(board_num, board_title, board_content, board_file, board_date, board_read_cnt)
+		values(null,#{board_title},#{board_content},null, sysdate(), 0);
+	</insert>
+	<!-- 글 보기 -->
+	<select id="sel_board_detail" parameterType="Integer"
+		resultMap="boardMap">
+		select
+		*
+		from
+		board b, file f
+		where
+		board_num=#{board_num} and
+		b.board_file=f.file_group
+	</select>
+	<!-- 글 보기 2 -->
+	<select id="sel_board_detail2" parameterType="Integer"
+		resultMap="boardMap">
+		select
+		*
+		from
+		board b
+		where
+		board_num=#{board_num}
+	</select>
+	<!-- 조회수 증가 -->
+	<update id="up_board_read_cnt">
+		update board set board_read_cnt = board_read_cnt+1 where board_num=#{board_num}
+	</update>
+	
+	<!-- 조회수 가져오기 -->
+	<select id="sel_board_read_cnt" parameterType="Integer">
+		select board_read_cnt from board where board_num=#{board_num}
+	</select>
+
+	<!-- 글 삭제 -->
+	<delete id="board_delete">
+		delete from board where board_num=#{board_num}
+	</delete>
+	
+	
+	<!-- 글 수정 -->
+	<update id="board_update">
+		update
+		board
+		set
+		board_title=#{board_title}, board_content=#{board_content}
+		where
+		board_num=#{board_num}
+	</update>
+
+	<!-- 파일추가 -->
+	<insert id="insert_file"> <!-- useGeneratedKeys="true" keyProperty="file_num" <selectKey resultType="int" 
+			keyProperty="file_num" order="BEFORE"> SELECT MAX(file_num)+1 FROM file 
+			</selectKey> -->
+		<!-- insert into file values(null, #{file_name}, #{file_org_name}, 
+		(select concat((select * from(select max(board_num +1) from board) b),'번글 파일')from dual), #{file_size}*0.001+'KB') -->
+		
+		insert into file values(null, #{file_name}, #{file_org_name}, 
+		(select concat
+					((select * from(
+						select auto_increment from information_schema.tables where table_schema = 'test' and table_name='board') b),
+					'번글파일' )
+				from dual),
+		(select concat(#{file_size}*'0.001','KB') from dual))
+		
+	</insert>
+	<!-- 파일 삭제 -->
+	<delete id="file_delete">
+		delete from file where file_num=#{file_num} 
+	</delete>
+	<!-- 파일 리스트 -->
+	<select id="sel_file_list" resultMap="fileMap">
+		<!-- select * from file f, board b where f.file_name=b.board_file and b.board_file=#{board_file} -->
+		select * from board b, file f where b.board_file=f.file_group and b.board_file=#{board_file}
+	</select>
+	
+	<!-- 글 갯수 -->
+	<select id="cnt_file_num" parameterType="map" resultType="int">
+		select count(file_num) from file
+	</select>
+	
+</mapper>
+

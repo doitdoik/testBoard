@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:aop="http://www.springframework.org/schema/aop"
+	xmlns:context="http://www.springframework.org/schema/context"
+	xmlns:jdbc="http://www.springframework.org/schema/jdbc"
+	xmlns:mybatis-spring="http://mybatis.org/schema/mybatis-spring"
+	xsi:schemaLocation="http://www.springframework.org/schema/jdbc http://www.springframework.org/schema/jdbc/spring-jdbc-3.1.xsd
+		http://mybatis.org/schema/mybatis-spring http://mybatis.org/schema/mybatis-spring-1.2.xsd
+		http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
+		http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-3.1.xsd
+		http://www.springframework.org/schema/aop http://www.springframework.org/schema/aop/spring-aop-3.1.xsd">
+	
+	<!-- Root Context: defines shared resources visible to all other web components -->
+	<bean id="dataSource" class="org.apache.ibatis.datasource.pooled.PooledDataSource">	
+		<!-- <property name="driverClassName" value="com.mysql.jdbc.Driver"/> -->
+		<property name="driver" value="com.mysql.jdbc.Driver"/>
+		<property name="url" value="jdbc:mysql://127.0.0.1:3306/test" />
+		<property name="username" value="root"/>
+		<property name="password" value="roqkf@12"/>
+		<property name="poolPingEnabled" value="true"/>  <!--  커넥션 ping 테스트 -->
+        <property name="poolPingQuery" value="select 1"/>   <!-- 커넥션이 살아 있는지 확인할 쿼리 -->
+        <property name="poolPingConnectionsNotUsedFor" value="43200"/> <!-- 어떤 커넥션이 닫힐 상태인지 판단하는 기준시간 -->
+        <property name="poolTimeToWait" value="30000"/>   <!-- 사용 불가능한 커넥션 기다리는 시간 -->   
+	</bean>
+	
+	<bean id="sqlSessionFactory" class="org.mybatis.spring.SqlSessionFactoryBean">
+       <property name="dataSource" ref="dataSource"></property>
+       <property name="configLocation"
+			value="classpath:/mybatis-config.xml" />
+		<property name="mapperLocations"
+			value="classpath:/mapper/*.xml" />
+	</bean>
+	<bean id="sqlSession"
+		class="org.mybatis.spring.SqlSessionTemplate"
+		destroy-method="clearCache">
+		<constructor-arg name="sqlSessionFactory"
+			ref="sqlSessionFactory" />
+	</bean>	
+	
+	<bean id="transactionManager"
+       class="org.springframework.jdbc.datasource.DataSourceTransactionManager">
+       <property name="dataSource" ref="dataSource"></property>
+	</bean>
+   	
+   	<!-- @Mapper는 마이바티스가 객체를 생성한다. 마이바티스에게 @Mapper 클래스의 위치를 알려준다 -->
+	<mybatis-spring:scan base-package="com.agos.boardTest.dao" />
+	
+	<!-- 필요한 부분 객체 생성 -->
+	<bean id="modelMapper" class="org.modelmapper.ModelMapper" />
+	<bean id="gson" class="com.google.gson.Gson" />
+</beans>
